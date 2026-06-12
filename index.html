@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> Teman Ngobrol Kamu </title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:Arial;
+  background:#e5ddd5;
+}
+
+.chat{
+  width:95%;
+  max-width:420px;
+  height:90vh;
+  background:#efeae2;
+  border-radius:20px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  background:#075e54;
+  color:white;
+  padding:10px;
+}
+
+.messages{
+  flex:1;
+  padding:15px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.bubble{
+  max-width:80%;
+  padding:10px;
+  border-radius:10px;
+  font-size:14px;
+  line-height:1.4;
+  background:white;
+}
+
+.me{align-self:flex-end;background:#dcf8c6;}
+
+.options{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px;
+  background:#f0f0f0;
+}
+
+button{
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#333;
+  color:white;
+  cursor:pointer;
+}
+
+.btn-reset{
+  background:#ff4d4d !important;
+}
+
+.btn-soft{
+  background:#444;
+}
+
+.typing{
+  font-size:12px;
+  font-style:italic;
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="chat">
+  <div class="header">💗 Dia (temen ngobrol kamu)</div>
+
+  <div class="messages" id="msg"></div>
+  <div class="options" id="opt"></div>
+</div>
+
+<script>
+
+const msg=document.getElementById("msg");
+const opt=document.getElementById("opt");
+
+let memory = {
+  lastMood:"",
+  lastTopic:"",
+  emotionLevel:0
+};
+
+/* ======================
+   UI
+====================== */
+function add(t,type="bot"){
+  const d=document.createElement("div");
+  d.className=`bubble ${type}`;
+  d.innerText=t;
+  msg.appendChild(d);
+  msg.scrollTop=99999;
+}
+
+function wait(ms){
+  return new Promise(r=>setTimeout(r,ms));
+}
+
+function typing(){
+  const t=document.createElement("div");
+  t.className="typing";
+  t.innerText="sedang mengetik...";
+  msg.appendChild(t);
+  msg.scrollTop=99999;
+  return t;
+}
+
+/* ======================
+   RESPONSE ENGINE
+====================== */
+function respond(type, sub){
+
+  const db={
+
+    capek:{
+      fisik:[
+        "aku bisa kebayang sih badan kamu lagi drop",
+        "kayak semua gerakan jadi berat ya",
+        "kamu lagi butuh istirahat yang bener-bener nyenyak kayaknya",
+        "istirahat sana biar badan kamu bisa pulih dengan baik ya"
+      ],
+      mental:[
+        "capek yang nggak kelihatan itu emang paling kerasa",
+        "pikiran penuh tapi susah dijelasin",
+        "kayak semua jadi berat tapi nggak keliatan ya",
+        "tapi aku yakin kamu kuat kok, kadang pikiran butuh istirahat juga biar nggak numpuk terus ya",
+        "coba deh kasih waktu buat pikiran kamu buat rileks, mungkin dengan dengerin musik yang kamu suka atau jalan-jalan sebentar"
+
+      ],
+      sosial:[
+        "ketemu orang banyak tapi malah habis energi ya",
+        "itu capek yang diam-diam nyedot tenaga",
+        "kayak kamu harus jaga-jaga energi kamu biar nggak kehabisan di tengah-tengah ya",
+        "coba deh kasih waktu buat diri kamu sendiri",
+        "kadang kita butuh recharge sendiri dulu biar bisa happy lagi pas ketemu orang lain"
+      ],
+      campur:[
+        "ini kayak semuanya numpuk jadi satu ya",
+        "nggak cuma badan tapi pikiran juga",
+        "kayak semua jadi berat tapi nggak keliatan ya",
+        "tapi aku yakin kamu kuat kok, kadang kita semua pernah ngerasain"
+      ],
+      tanpa_sebab:[
+        "capek yang nggak jelas itu memang aneh banget",
+        "udah istirahat tapi masih kerasa kosong",
+        "entah kenapa ya, mungkin tubuh atau pikiran kamu lagi butuh sesuatu yang belum kamu sadari",
+        "coba deh perhatiin lagi, mungkin ada hal kecil yang bisa bikin kamu lebih baik, atau mungkin kamu cuma butuh waktu buat diri sendiri dulu"
+      ]
+    },
+
+    mikir:{
+      overthinking:[
+        "kepala lagi penuh banget ya… aku ngerti sih",
+        "hal kecil bisa jadi besar tanpa sadar",
+        "coba alihkan pikiran kamu ke hal yang lebih ringan dulu, ",
+        "mungkin dengan nonton sesuatu yang lucu atau dengerin musik yang santai bisa bantu buat ngurangin beban pikiran kamu",
+        "atau kamu bisa coba nulis apa yang lagi kamu pikirin, kadang itu bisa bantu buat ngurangin beban di kepala"
+      ],
+      seseorang:[
+        "kayaknya kamu lagi mikirin seseorang ya",
+        "itu memang bisa bikin pikiran jadi campur aduk ya",
+        "dan itu biasanya perasaan yang rumit sih",
+        "coba deh kamu kasih waktu buat diri kamu sendiri buat ngerasain semua itu, ",
+        "nggak usah buru-buru buat nyelesain atau ngertiin semuanya, kadang perasaan butuh waktu buat diproses"
+      ],
+      masa_depan:[
+        "masa depan itu emang bikin campur aduk ya",
+        "kita gabisa tau pasti apa yang bakal terjadi, jadi wajar aja kalau pikiran jadi kemana-mana",
+        "tapi coba deh fokus ke hal-hal kecil yang bisa kamu kontrol dulu, itu bisa bantu buat ngurangin rasa cemas tentang masa depan",
+        "atau kamu bisa coba buat rencana kecil-kecilan buat masa depan kamu, itu bisa bikin kamu merasa lebih siap dan kurang cemas"
+      ],
+      random:[
+        "kadang mikir tapi nggak tau mikirin apa ya",
+        "itu justru yang bikin capek aneh",
+        "kayak pikiran kamu lagi muter-muter nggak jelas",
+        "coba deh kamu kasih waktu buat pikiran kamu buat rileks.",
+        " mungkin dengan dengerin musik yang kamu suka atau jalan-jalan sebentar"
+      ],
+      kosong:[
+        "mikir tapi kosong itu juga ada ya",
+        "kayak kamu pengen mikir tapi nggak ada yang bener-bener nyantol di pikiran kamu",
+        "kayak rame tapi nggak jelas gitu",
+        "tapi itu juga wajar kok, kadang pikiran kita emang nggak selalu penuh dengan hal-hal yang jelas"
+      ]
+    },
+
+    biasa:{
+      santai:[
+        "hari yang tenang itu kadang paling aman ya",
+        "nggak terlalu rame tapi nyaman",
+        "kayak kamu bisa santai tanpa harus khawatir soal apa pun"
+      ],
+      bosan:[
+        "bosan tapi nggak tau mau ngapain itu sering sih",
+        "kayak stuck tapi santai",
+        "mingkin rencanain liburan kecil buat ngilangin bosan kamu, bisa ke tempat yang kamu suka atau coba hobi baru"
+      ],
+      happy:[
+        "hal kecil bisa bikin mood naik ya 😄",
+        "kayak seneng-seneng kecil itu yang bikin hari jadi lebih cerah ya",
+        "aku jadi ikut seneng sih"
+      ],
+      kosong:[
+        "hari kosong tapi nggak buruk juga",
+        "lebih ke diam aja",
+        "kadang kita butuh hari kayak gini juga sih, buat recharge atau sekedar buat santai tanpa harus mikirin apa pun"
+      ],
+      ngobrol:[
+        "ngobrol ringan itu enak sih",
+        "nggak harus berat-berat",
+        "kadang ngobrol santai itu yang kita butuhin buat ngelepasin semua yang ada di kepala kita"
+      ]
+    },
+
+    happy:{
+      kecil:[
+        "hal kecil tapi bikin hati kamu happy ya 😄",
+        "itu justru yang paling hangat ",
+        "hal kecil yang bikin seneng itu yang paling jujur sih, kayak kamu nggak perlu alasan buat seneng-seneng kecil gitu"
+      ],
+      besar:[
+        "wah lagi happy banget ya 😆",
+        "kayanya dunia kamu lagi cerah banget nih",
+        "aku ikut kebawa vibe-nya"
+      ],
+      ketawa:[
+        "ketawa terus itu enak banget sih",
+        "rasanya happy banget ya sampai ketawa-ketawa sendiri gitu",
+        "kayak semua jadi ceriah dan ringan ya"
+      ],
+      campur:[
+        "happy tapi campur ya… aku ngerti sih",
+        "perasaan kadang nggak satu warna",
+        "kayak kamu happy tapi juga ada perasaan lain yang campur di situ, itu wajar banget sih"
+
+      ],
+      random:[
+        "seneng tanpa alasan itu paling jujur sih",
+        "nggak perlu alasan juga gapapa",
+        "kadang kita emang bisa seneng cuma karena hal kecil yang nggak terduga, itu yang bikin hidup jadi lebih seru sih"
+      ]
+    },
+
+    naksir:{
+      kepikiran:[
+        "kalau udah kepikiran terus itu biasanya ada rasa ya",
+        "aku ngerti sih itu susah diatur",
+        "tapi coba deh kamu kasih waktu buat diri kamu sendiri buat ngerasain semua itu, ",
+        "nggak usah buru-buru buat nyelesain atau ngertiin semuanya"
+      ],
+      senyum:[
+        "senyum sendiri itu lucu tapi manis 🤭",
+        "itu tanda kamu lagi kebawa perasaan",
+        "kayak kamu nggak sadar tapi senyum terus gitu, itu yang bikin kamu ngerasa happy tapi juga agak bingung ya"
+      ],
+      bingung:[
+        "bingung sama perasaan sendiri itu normal banget",
+        "ngga semua perasaan itu harus langsung jelas, kadang kita butuh waktu buat ngerasain dan ngerti semuanya",
+        "pelan pelan kita paham kok nanti, nggak usah buru-buru buat ngertiin semuanya sekarang"
+      ],
+      deg:[
+        "deg-degan dikit itu justru bikin rasa hidup ya 💗",
+        "rasanya kaya berdebar debar gitu ya, kayak ada sesuatu yang bikin hati kamu bergetar",
+        "aku ngerti itu rasanya bisa bikin kamu seneng tapi juga agak takut-takut gitu, itu wajar banget sih"
+      ],
+      iseng:[
+        "kalau iseng tapi kepikiran terus… itu biasanya bukan cuma iseng",
+        "tapi ada rasa yang bikin kamu terus mikirin dia ya",
+        "mungkin ada sesuatu yang membekas dihati kamu",
+        "itu wajar banget sih, "
+    ], 
+    }
+
+  };
+
+  return db[type][sub] || ["coba kamu ceritain ke aku…", "aku coba pahami sebisaku ya 🙂"];
+}
+
+/* ======================
+   START
+====================== */
+function start(){
+
+  msg.innerHTML="";
+  opt.innerHTML="";
+
+  add("hai 😄 hari ini kamu lagi gimana?");
+
+  const moods=[
+    {t:"capek 😵", type:"capek"},
+    {t:"lagi mikir 🧠", type:"mikir"},
+    {t:"biasa aja 🙂", type:"biasa"},
+    {t:"lagi happy 😄", type:"happy"},
+    {t:"lagi naksir 💗", type:"naksir"}
+  ];
+
+  moods.forEach(m=>{
+    const b=document.createElement("button");
+    b.innerText=m.t;
+
+    b.onclick=()=>{
+      add(m.t,"me");
+
+      memory.lastMood=m.type;
+      memory.emotionLevel++;
+
+      run(m.type);
+    };
+
+    opt.appendChild(b);
+  });
+
+}
+
+/* ======================
+   MAIN FLOW
+====================== */
+async function run(type){
+
+  opt.innerHTML="";
+
+  const optionsMap={
+
+    capek:[
+      {t:"capek fisik 😮‍💨", key:"fisik"},
+      {t:"capek mental 🧠", key:"mental"},
+      {t:"capek sosial 🧍", key:"sosial"},
+      {t:"campur semua", key:"campur"},
+      {t:"nggak tau kenapa", key:"tanpa_sebab"},
+      {t:"🔴 ganti topik", key:"reset", reset:true}
+    ],
+
+    mikir:[
+      {t:"overthinking", key:"overthinking"},
+      {t:"seseorang", key:"seseorang"},
+      {t:"masa depan", key:"masa_depan"},
+      {t:"random", key:"random"},
+      {t:"kosong", key:"kosong"},
+      {t:"🔴 ganti topik", key:"reset", reset:true}
+    ],
+
+    biasa:[
+      {t:"santai aja", key:"santai"},
+      {t:"bosan", key:"bosan"},
+      {t:"happy kecil 😄", key:"happy"},
+      {t:"kosong", key:"kosong"},
+      {t:"ngobrol", key:"ngobrol"},
+      {t:"🔴 ganti topik", key:"reset", reset:true}
+    ],
+
+    happy:[
+      {t:"happy kecil 😄", key:"kecil"},
+      {t:"happy banget ✨", key:"besar"},
+      {t:"ketawa terus 🤭", key:"ketawa"},
+      {t:"campur tapi seneng", key:"campur"},
+      {t:"random happy", key:"random"},
+      {t:"🔴 ganti topik", key:"reset", reset:true}
+    ],
+
+    naksir:[
+      {t:"kepikiran dia 💭", key:"kepikiran"},
+      {t:"senyum sendiri 🤭", key:"senyum"},
+      {t:"bingung sendiri", key:"bingung"},
+      {t:"deg-degan 💗", key:"deg"},
+      {t:"cuma iseng", key:"iseng"},
+      {t:"🔴 ganti topik", key:"reset", reset:true}
+    ]
+
+  };
+
+  const baseReply = respond(type,"santai");
+
+  for(let i=0;i<baseReply.length;i++){
+    let t=typing();
+    await wait(500);
+    t.remove();
+    add(baseReply[i]);
+  }
+
+  if(memory.lastMood===type){
+    add("aku ngerasa kamu masih di vibe yang sama tadi… aku masih dengerin ya 🙂");
+  }
+
+  const opts=optionsMap[type];
+
+  opts.forEach(o=>{
+    const b=document.createElement("button");
+
+    b.innerText=o.t;
+
+    if(o.reset){
+      b.classList.add("btn-reset");
+    }else{
+      b.classList.add("btn-soft");
+    }
+
+    b.onclick=async()=>{
+
+      add(o.t,"me");
+
+      let t=typing();
+      await wait(400);
+      t.remove();
+
+      if(o.reset){
+        start();
+        return;
+      }
+
+      memory.lastTopic=o.key;
+
+      const res=respond(type,o.key);
+
+      for(let i=0;i<res.length;i++){
+        let t2=typing();
+        await wait(450);
+        t2.remove();
+        add(res[i]);
+      }
+
+      if(memory.emotionLevel>2){
+        add("kalau kamu mau cerita lebih jauh, aku masih di sini ya 🙂");
+      } else {
+        add("aku dengerin kamu kok… lanjut aja kalau mau");
+      }
+
+    };
+
+    opt.appendChild(b);
+  });
+
+}
+
+start();
+
+</script>
+
+</body>
+</html>
